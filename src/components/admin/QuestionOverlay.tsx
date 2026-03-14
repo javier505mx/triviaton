@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Stack, Title, Text, Button, Group, Checkbox } from '@mantine/core';
+import { useRef, useState } from 'react';
+import { Modal, Stack, Title, Button, Group, Checkbox } from '@mantine/core';
 import { Player, BoardCell } from '@/types/game';
 
 interface QuestionOverlayProps {
@@ -26,6 +26,7 @@ export function QuestionOverlay({
   const [doubleResult, setDoubleResult] = useState<'correct' | 'incorrect' | null>(null);
   const [doublePlayerId, setDoublePlayerId] = useState<string | null>(null);
   const [noOneAnswered, setNoOneAnswered] = useState(false);
+  const wrongAnswerAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleNoOneAnswered = () => {
     setNoOneAnswered(true);
@@ -60,6 +61,19 @@ export function QuestionOverlay({
     );
   };
 
+  const handlePlayWrongAnswerSound = () => {
+    if (typeof Audio === 'undefined') {
+      return;
+    }
+
+    if (!wrongAnswerAudioRef.current) {
+      wrongAnswerAudioRef.current = new Audio('/sounds/error.mp3');
+    }
+
+    wrongAnswerAudioRef.current.currentTime = 0;
+    void wrongAnswerAudioRef.current.play().catch(() => {});
+  };
+
   return (
     <Modal
       opened={opened}
@@ -70,7 +84,7 @@ export function QuestionOverlay({
       closeOnClickOutside={false}
     >
       <Stack gap="lg">
-        <Title order={2} ta="center">
+        <Title order={1} ta="center" c="green.6">
           ${cell?.value}
         </Title>
         
@@ -78,15 +92,47 @@ export function QuestionOverlay({
           {cell?.question}
         </Title>
         <div style={{ padding: '1rem', backgroundColor: '#e7f5ff', borderRadius: 8 }}>
-              <Text fw={700} size="lg" ta="center">
-                Answer: {cell?.answer}
-              </Text>
-            </div>
+          <Stack gap={0}>
+            <Title order={1} ta="center">
+              Answer:
+            </Title>
+            <Title order={1} ta="center">
+              {cell?.answer}
+            </Title>
+          </Stack>
+        </div>
 
         {!answerRevealed ? (
-          <Button onClick={onRevealAnswer} size="lg" fullWidth>
-            Reveal Answer
-          </Button>
+          <>
+            <Button
+              color="yellow"
+              size="lg"
+              fullWidth
+              leftSection={
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+              }
+              onClick={handlePlayWrongAnswerSound}
+            >
+              Play wrong answer sound
+            </Button>
+
+            <Button onClick={onRevealAnswer} size="lg" fullWidth>
+              Reveal Answer
+            </Button>
+          </>
         ) : (
           <>
             {isDouble ? (
@@ -145,22 +191,32 @@ export function QuestionOverlay({
               </>
             ) : (
               <>
-                <Title order={4}>Select Correct Player (optional)</Title>
+                <Title order={4} c="green.6">
+                  Select Correct Player (optional)
+                </Title>
                 <Stack gap="sm">
                   {players.map(player => (
                     <Button
                       key={player.id}
-                      variant={correctPlayer === player.id ? 'filled' : 'outline'}
+                      variant="filled"
                       color="green"
                       onClick={() => { setCorrectPlayer(player.id === correctPlayer ? null : player.id); setNoOneAnswered(false); }}
                       disabled={noOneAnswered}
+                      size="lg"
+                      fullWidth
+                      style={{
+                        border: correctPlayer === player.id ? '2px solid var(--mantine-color-green-9)' : '2px solid transparent',
+                        opacity: correctPlayer && correctPlayer !== player.id ? 0.85 : 1,
+                      }}
                     >
                       {player.name}
                     </Button>
                   ))}
                 </Stack>
 
-                <Title order={4}>Select Incorrect Players (optional)</Title>
+                <Title order={4} c="red.6">
+                  Select Incorrect Players (optional)
+                </Title>
                 <Stack gap="sm">
                   {players.map(player => (
                     <Checkbox
@@ -169,6 +225,23 @@ export function QuestionOverlay({
                       checked={incorrectPlayers.includes(player.id)}
                       onChange={() => { toggleIncorrect(player.id); setNoOneAnswered(false); }}
                       disabled={noOneAnswered || player.id === correctPlayer}
+                      size="xl"
+                      color="red"
+                      styles={{
+                        body: { alignItems: 'center' },
+                        input: {
+                          borderColor: 'var(--mantine-color-red-6)',
+                          '&:checked': {
+                            backgroundColor: 'var(--mantine-color-red-6)',
+                            borderColor: 'var(--mantine-color-red-6)',
+                          },
+                        },
+                        label: {
+                          color: 'var(--mantine-color-red-6)',
+                          fontSize: '1.05rem',
+                          fontWeight: 600,
+                        },
+                      }}
                     />
                   ))}
                 </Stack>

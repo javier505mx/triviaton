@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text } from '@mantine/core';
 import { BoardCell } from '@/types/game';
 
@@ -13,6 +13,7 @@ interface QuestionDisplayProps {
 export function QuestionDisplay({ cell, isDouble, answerRevealed }: QuestionDisplayProps) {
   const [showDouble, setShowDouble] = useState(isDouble);
   const [answerVisible, setAnswerVisible] = useState(false);
+  const revealAnswerAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (isDouble) {
@@ -40,6 +41,15 @@ export function QuestionDisplay({ cell, isDouble, answerRevealed }: QuestionDisp
   // Trigger answer animation when answerRevealed changes to true
   useEffect(() => {
     if (answerRevealed) {
+      if (typeof Audio !== 'undefined') {
+        if (!revealAnswerAudioRef.current) {
+          revealAnswerAudioRef.current = new Audio('/sounds/reveal-answer.mp3');
+        }
+
+        revealAnswerAudioRef.current.currentTime = 0;
+        void revealAnswerAudioRef.current.play().catch(() => {});
+      }
+
       // Small delay to let the DOM update, then trigger animation
       const timer = setTimeout(() => {
         setAnswerVisible(true);
