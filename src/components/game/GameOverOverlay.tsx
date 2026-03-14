@@ -9,20 +9,35 @@ interface GameOverOverlayProps {
 }
 
 export function GameOverOverlay({ players }: GameOverOverlayProps) {
-  const [revealedPlayers, setRevealedPlayers] = useState(0);
+  const [revealedGroups, setRevealedGroups] = useState(0);
 
   // Sort players by score (lowest to highest)
   const sortedPlayers = [...players].sort((a, b) => a.score - b.score);
+  const playerGroups = sortedPlayers.reduce<Array<{ score: number; players: Player[] }>>((groups, player) => {
+    const lastGroup = groups[groups.length - 1];
+
+    if (lastGroup && lastGroup.score === player.score) {
+      lastGroup.players.push(player);
+      return groups;
+    }
+
+    groups.push({
+      score: player.score,
+      players: [player],
+    });
+
+    return groups;
+  }, []);
 
   useEffect(() => {
-    if (revealedPlayers < sortedPlayers.length) {
+    if (revealedGroups < playerGroups.length) {
       const timer = setTimeout(() => {
-        setRevealedPlayers(prev => prev + 1);
-      }, 1000); // Reveal one player per second
+        setRevealedGroups(prev => prev + 1);
+      }, 1000); // Reveal one score group per second
 
       return () => clearTimeout(timer);
     }
-  }, [revealedPlayers, sortedPlayers.length]);
+  }, [revealedGroups, playerGroups.length]);
 
   // Generate sparkle particles
   const sparkleCount = 60;
@@ -78,13 +93,15 @@ export function GameOverOverlay({ players }: GameOverOverlayProps) {
         </Text>
 
         <Stack gap="md" style={{ width: '100%', marginTop: '2rem' }}>
-          {sortedPlayers.map((player, index) => {
-            const isWinner = index === sortedPlayers.length - 1;
-            const isRevealed = index < revealedPlayers;
+          {playerGroups.map((group, index) => {
+            const isWinner = index === playerGroups.length - 1;
+            const isRevealed = index < revealedGroups;
+            const playerNames = group.players.map(player => player.name).join(' & ');
+            const winnerLabel = group.players.length > 1 ? 'WINNER(S)' : 'WINNER';
 
             return (
               <div
-                key={player.id}
+                key={`${group.score}-${playerNames}`}
                 style={{
                   opacity: isRevealed ? 1 : 0,
                   transform: isRevealed ? 'translateY(0)' : 'translateY(20px)',
@@ -112,14 +129,14 @@ export function GameOverOverlay({ players }: GameOverOverlayProps) {
                           textShadow: '1px 1px 2px rgba(255, 255, 255, 0.3)',
                         }}
                       >
-                        {player.name}
+                        {playerNames}
                       </Text>
                       <Text
                         size="40px"
                         fw={700}
                         style={{ color: '#060b2e' }}
                       >
-                        ${player.score.toLocaleString()}
+                        ${group.score.toLocaleString()}
                       </Text>
                       <Text
                         size="30px"
@@ -129,7 +146,7 @@ export function GameOverOverlay({ players }: GameOverOverlayProps) {
                           letterSpacing: '0.15em',
                         }}
                       >
-                        WINNER
+                        {winnerLabel}
                       </Text>
                     </Stack>
                   </div>
@@ -152,7 +169,7 @@ export function GameOverOverlay({ players }: GameOverOverlayProps) {
                         textShadow: '2px 2px 4px rgba(0, 0, 0, 0.6)',
                       }}
                     >
-                      {player.name} — ${player.score.toLocaleString()}
+                      {playerNames} — ${group.score.toLocaleString()}
                     </Text>
                   </div>
                 )}

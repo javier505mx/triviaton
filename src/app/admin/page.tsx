@@ -104,8 +104,8 @@ export default function AdminPage() {
     return (
       <Container>
         <PlayerSetup
-          onConfirm={(players) => {
-            send({ type: 'PLAYERS_CONFIRMED', players });
+          onConfirm={(players, doubleQuestionCount) => {
+            send({ type: 'PLAYERS_CONFIRMED', players, doubleQuestionCount });
           }}
         />
       </Container>

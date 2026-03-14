@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Modal, Stack, Title, Button, Group, Checkbox } from '@mantine/core';
+import { Modal, Stack, Title, Button, Group, Checkbox, SimpleGrid } from '@mantine/core';
 import { Player, BoardCell } from '@/types/game';
 
 interface QuestionOverlayProps {
@@ -29,11 +29,18 @@ export function QuestionOverlay({
   const wrongAnswerAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleNoOneAnswered = () => {
-    setNoOneAnswered(true);
-    setCorrectPlayer(null);
-    setIncorrectPlayers([]);
-    setDoublePlayerId(null);
-    setDoubleResult(null);
+    setNoOneAnswered(prev => {
+      const next = !prev;
+
+      if (next) {
+        setCorrectPlayer(null);
+        setIncorrectPlayers([]);
+        setDoublePlayerId(null);
+        setDoubleResult(null);
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = () => {
@@ -59,6 +66,21 @@ export function QuestionOverlay({
     setIncorrectPlayers(prev =>
       prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
     );
+  };
+
+  const toggleCorrectPlayer = (playerId: string) => {
+    setCorrectPlayer(prev => {
+      const nextCorrectPlayer = prev === playerId ? null : playerId;
+
+      setIncorrectPlayers(currentIncorrectPlayers =>
+        nextCorrectPlayer
+          ? currentIncorrectPlayers.filter(id => id !== nextCorrectPlayer)
+          : currentIncorrectPlayers
+      );
+
+      return nextCorrectPlayer;
+    });
+    setNoOneAnswered(false);
   };
 
   const handlePlayWrongAnswerSound = () => {
@@ -138,32 +160,49 @@ export function QuestionOverlay({
             {isDouble ? (
               <>
                 <Title order={4}>Daily Double - Select Player and Result</Title>
-                <Stack gap="sm">
+                <SimpleGrid cols={2} spacing="sm">
                   {players.map(player => (
                     <Button
                       key={player.id}
-                      variant={doublePlayerId === player.id ? 'filled' : 'outline'}
+                      variant="outline"
+                      color="blue"
                       onClick={() => { setDoublePlayerId(player.id); setNoOneAnswered(false); }}
                       disabled={noOneAnswered}
+                      size="lg"
+                      fullWidth
+                      style={{
+                        border: doublePlayerId === player.id ? '2px solid var(--mantine-color-blue-9)' : '2px solid transparent',
+                        opacity: doublePlayerId && doublePlayerId !== player.id ? 0.85 : 1,
+                      }}
                     >
                       {player.name}
                     </Button>
                   ))}
-                </Stack>
+                </SimpleGrid>
 
                 {doublePlayerId && !noOneAnswered && (
                   <Group grow>
                     <Button
                       color="green"
-                      variant={doubleResult === 'correct' ? 'filled' : 'outline'}
+                      variant="filled"
                       onClick={() => setDoubleResult('correct')}
+                      size="lg"
+                      style={{
+                        border: doubleResult === 'correct' ? '2px solid var(--mantine-color-green-9)' : '2px solid transparent',
+                        opacity: doubleResult && doubleResult !== 'correct' ? 0.85 : 1,
+                      }}
                     >
                       Correct (+ ${cell?.value ? cell.value * 2 : 0})
                     </Button>
                     <Button
                       color="red"
-                      variant={doubleResult === 'incorrect' ? 'filled' : 'outline'}
+                      variant="filled"
                       onClick={() => setDoubleResult('incorrect')}
+                      size="lg"
+                      style={{
+                        border: doubleResult === 'incorrect' ? '2px solid var(--mantine-color-red-9)' : '2px solid transparent',
+                        opacity: doubleResult && doubleResult !== 'incorrect' ? 0.85 : 1,
+                      }}
                     >
                       Incorrect (- ${cell?.value ? cell.value * 2 : 0})
                     </Button>
@@ -177,7 +216,7 @@ export function QuestionOverlay({
                   size="lg"
                   fullWidth
                 >
-                  No one answered
+                  {noOneAnswered ? 'Undo "No one answered"' : 'No one answered'}
                 </Button>
 
                 <Button
@@ -194,17 +233,18 @@ export function QuestionOverlay({
                 <Title order={4} c="green.6">
                   Select Correct Player (optional)
                 </Title>
-                <Stack gap="sm">
-                  {players.map(player => (
+                <SimpleGrid cols={2} spacing="sm">
+                  {players.map((player, index) => (
                     <Button
                       key={player.id}
-                      variant="filled"
+                      variant={correctPlayer === player.id ? 'filled' : 'outline'}
                       color="green"
-                      onClick={() => { setCorrectPlayer(player.id === correctPlayer ? null : player.id); setNoOneAnswered(false); }}
+                      onClick={() => toggleCorrectPlayer(player.id)}
                       disabled={noOneAnswered}
                       size="lg"
                       fullWidth
                       style={{
+                        gridColumn: players.length % 2 === 1 && index === players.length - 1 ? '1 / -1' : undefined,
                         border: correctPlayer === player.id ? '2px solid var(--mantine-color-green-9)' : '2px solid transparent',
                         opacity: correctPlayer && correctPlayer !== player.id ? 0.85 : 1,
                       }}
@@ -212,12 +252,12 @@ export function QuestionOverlay({
                       {player.name}
                     </Button>
                   ))}
-                </Stack>
+                </SimpleGrid>
 
                 <Title order={4} c="red.6">
                   Select Incorrect Players (optional)
                 </Title>
-                <Stack gap="sm">
+                <SimpleGrid cols={2} spacing="sm">
                   {players.map(player => (
                     <Checkbox
                       key={player.id}
@@ -244,7 +284,7 @@ export function QuestionOverlay({
                       }}
                     />
                   ))}
-                </Stack>
+                </SimpleGrid>
 
                 <Button
                   color="gray"
@@ -253,7 +293,7 @@ export function QuestionOverlay({
                   size="lg"
                   fullWidth
                 >
-                  No one answered
+                  {noOneAnswered ? 'Undo "No one answered"' : 'No one answered'}
                 </Button>
 
                 <Button

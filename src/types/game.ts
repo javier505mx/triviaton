@@ -25,8 +25,12 @@ export interface BoardCell {
   isDouble: boolean;
 }
 
+export const DEFAULT_DOUBLE_QUESTION_COUNT = 2;
+export const MAX_DOUBLE_QUESTION_COUNT = 30;
+
 export interface GameContext {
   players: Player[];
+  doubleQuestionCount: number;
   categories: QuestionCategory[];
   board: BoardCell[][];
   currentClue: { col: number; row: number } | null;
@@ -55,6 +59,7 @@ export interface StartEvent {
 export interface PlayersConfirmedEvent {
   type: 'PLAYERS_CONFIRMED';
   players: Player[];
+  doubleQuestionCount: number;
 }
 
 export interface CategoriesConfirmedEvent {

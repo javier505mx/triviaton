@@ -1,5 +1,12 @@
 import { setup, assign } from 'xstate';
-import { GameContext, GameEvent, Player, QuestionCategory, BoardCell } from '@/types/game';
+import {
+  GameContext,
+  GameEvent,
+  QuestionCategory,
+  BoardCell,
+  DEFAULT_DOUBLE_QUESTION_COUNT,
+  MAX_DOUBLE_QUESTION_COUNT,
+} from '@/types/game';
 
 // Helper function to create board from selected categories
 function createBoard(categories: QuestionCategory[]): BoardCell[][] {
@@ -32,9 +39,14 @@ function createBoard(categories: QuestionCategory[]): BoardCell[][] {
   return board;
 }
 
-// Helper function to randomly assign 2 Daily Doubles
-function assignDailyDoubles(board: BoardCell[][]): BoardCell[][] {
-  const newBoard = board.map(col => [...col]);
+// Helper function to randomly assign configured DOUBLE clues
+function assignDailyDoubles(board: BoardCell[][], doubleQuestionCount: number): BoardCell[][] {
+  const newBoard = board.map(column =>
+    column.map(cell => ({
+      ...cell,
+      isDouble: false,
+    }))
+  );
   
   // Get all unrevealed cell positions
   const positions: { col: number; row: number }[] = [];
@@ -44,9 +56,14 @@ function assignDailyDoubles(board: BoardCell[][]): BoardCell[][] {
     }
   }
   
-  // Randomly select 2 positions for Daily Doubles
+  const normalizedDoubleQuestionCount = Math.min(
+    positions.length,
+    Math.max(0, Math.min(MAX_DOUBLE_QUESTION_COUNT, doubleQuestionCount))
+  );
+
+  // Randomly select the configured positions for DOUBLE clues
   const shuffled = positions.sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, 2);
+  const selected = shuffled.slice(0, normalizedDoubleQuestionCount);
   
   selected.forEach(({ col, row }) => {
     if (newBoard[col] && newBoard[col][row]) {
@@ -90,6 +107,14 @@ export const gameMachine = setup({
         if (event.type !== 'PLAYERS_CONFIRMED') return [];
         return event.players;
       },
+      doubleQuestionCount: ({ context, event }) => {
+        if (event.type !== 'PLAYERS_CONFIRMED') return context.doubleQuestionCount;
+
+        return Math.min(
+          MAX_DOUBLE_QUESTION_COUNT,
+          Math.max(0, event.doubleQuestionCount)
+        );
+      },
     }),
     setCategories: assign({
       categories: ({ context, event }) => {
@@ -113,7 +138,7 @@ export const gameMachine = setup({
           .filter((cat): cat is QuestionCategory => cat !== undefined);
         
         const newBoard = createBoard(selectedCategories);
-        return assignDailyDoubles(newBoard);
+        return assignDailyDoubles(newBoard, context.doubleQuestionCount);
       },
     }),
     setCurrentClue: assign({
@@ -205,6 +230,7 @@ export const gameMachine = setup({
   initial: 'idle',
   context: {
     players: [],
+    doubleQuestionCount: DEFAULT_DOUBLE_QUESTION_COUNT,
     categories: [],
     board: [],
     currentClue: null,
@@ -252,6 +278,7 @@ export const gameMachine = setup({
           target: 'selectPlayers',
           actions: [assign({
             players: () => [],
+            doubleQuestionCount: () => DEFAULT_DOUBLE_QUESTION_COUNT,
             categories: () => [],
             board: () => [],
             currentClue: () => null,
@@ -331,6 +358,7 @@ export const gameMachine = setup({
           target: 'selectPlayers',
           actions: [assign({
             players: () => [],
+            doubleQuestionCount: () => DEFAULT_DOUBLE_QUESTION_COUNT,
             categories: () => [],
             board: () => [],
             currentClue: () => null,

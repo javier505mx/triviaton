@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import { Button, TextInput, NumberInput, Stack, Title } from '@mantine/core';
-import { Player } from '@/types/game';
+import { Player, DEFAULT_DOUBLE_QUESTION_COUNT, MAX_DOUBLE_QUESTION_COUNT } from '@/types/game';
 
 interface PlayerSetupProps {
-  onConfirm: (players: Player[]) => void;
+  onConfirm: (players: Player[], doubleQuestionCount: number) => void;
+}
+
+function normalizeCount(value: number | string, min: number, max: number, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : parseInt(value, 10);
+  if (Number.isNaN(parsed)) return fallback;
+
+  return Math.min(max, Math.max(min, parsed));
 }
 
 export function PlayerSetup({ onConfirm }: PlayerSetupProps) {
   const [playerCount, setPlayerCount] = useState(2);
   const [playerNames, setPlayerNames] = useState<string[]>(['', '']);
+  const [doubleQuestionCount, setDoubleQuestionCount] = useState(DEFAULT_DOUBLE_QUESTION_COUNT);
 
   const handleCountChange = (value: number | string) => {
-    const count = typeof value === 'number' ? value : parseInt(value);
+    const count = normalizeCount(value, 2, 8, 2);
     setPlayerCount(count);
     setPlayerNames(prev => {
       const newNames = [...prev];
@@ -36,7 +44,7 @@ export function PlayerSetup({ onConfirm }: PlayerSetupProps) {
       name: name || `Player ${index + 1}`,
       score: 0,
     }));
-    onConfirm(players);
+    onConfirm(players, doubleQuestionCount);
   };
 
   const isValid = playerNames.every(name => name.trim().length > 0);
@@ -51,6 +59,15 @@ export function PlayerSetup({ onConfirm }: PlayerSetupProps) {
         onChange={handleCountChange}
         min={2}
         max={8}
+        required
+      />
+
+      <NumberInput
+        label="Number of DOUBLE Questions"
+        value={doubleQuestionCount}
+        onChange={(value) => setDoubleQuestionCount(normalizeCount(value, 0, MAX_DOUBLE_QUESTION_COUNT, DEFAULT_DOUBLE_QUESTION_COUNT))}
+        min={0}
+        max={MAX_DOUBLE_QUESTION_COUNT}
         required
       />
 

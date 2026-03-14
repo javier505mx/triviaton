@@ -46,8 +46,25 @@ export function AdminBoard({ categories, board, onSelectClue, onNewGame }: Admin
                       }
                     }}
                   >
-                    <Text fw={700} size="xl" c={cell.revealed ? 'dimmed' : 'blue'}>
-                      {cell.revealed ? '—' : `$${cell.value}`}
+                    <Text
+                      fw={700}
+                      size="xl"
+                      c={cell.revealed ? 'dimmed' : 'blue'}
+                      span={!cell.revealed && cell.isDouble}
+                    >
+                      {cell.revealed ? (
+                        '—'
+                      ) : (
+                        <>
+                          {`$${cell.value}`}
+                          {cell.isDouble && (
+                            <Text component="span" c="red" inherit>
+                              {' '}
+                              (D)
+                            </Text>
+                          )}
+                        </>
+                      )}
                     </Text>
                   </Card>
                 ))}
